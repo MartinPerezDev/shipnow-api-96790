@@ -356,15 +356,16 @@ app.js
 server.js
 models
 routes
+controllers
+services
+repositories
 config/db.js
+config/env.js
 ```
 
 Todavía no incorpora:
 
 ```txt
-controllers
-services
-repositories
 middleware global de errores
 logger profesional
 Swagger
@@ -374,3 +375,10 @@ Docker
 ```
 
 Durante el curso, la API será mejorada progresivamente para separar responsabilidades, mejorar la mantenibilidad y acercarse a una estructura más profesional.
+
+Clase 1:
+```txt 
+-> Mejoramos la arquitectura añadiendo "controllers", "services" y "repositories" para separar responsabilidades.
+
+-> Añadimos el archivo ./config/env.js para centralizar la configuración de variables de entorno.
+```
