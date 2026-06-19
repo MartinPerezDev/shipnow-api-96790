@@ -7,7 +7,6 @@ export const ordersService = {
 
   getOrderById: async (id) => {
     const order = await ordersRepository.findById(id);
-
     if (!order) {
       const error = new Error("Pedido no encontrado");
       error.statusCode = 404;
