@@ -31,13 +31,8 @@ app.use("/api/orders", ordersRouter);
 
 
 // Protegemos router de mocks para que no quede expuesto en producción
-if (
-    process.env.NODE_ENV !==
-    'production'
-) {
-
-    app.use('/api/mocks', mocksRouter)
-
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/mocks', mocksRouter)
 }
 
 app.use((req, res) => {

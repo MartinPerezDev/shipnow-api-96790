@@ -27,23 +27,7 @@ export const ordersRepository = {
     return OrderModel.findByIdAndDelete(id);
   },
 
-  findCustomerById: async (id) => {
-    return UserModel.findById(id);
-  },
-
-  findStoreById: async (id) => {
-    return StoreModel.findById(id);
-  },
-
   insertManyOrders: async (orders) => {
     return OrderModel.insertMany(orders);
-  },
-
-  insertManyUsers: async (users) => {
-    return UserModel.insertMany(users);
-  },
-
-  insertManyStores: async (stores) => {
-    return StoreModel.insertMany(stores);
   }
 };

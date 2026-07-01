@@ -25,7 +25,7 @@ export const storesService = {
       throw error;
     }
 
-    const user = await storesRepository.findOwnerById(owner);
+    const user = await storesRepository.findById(owner);
     if (!user) {
       const error = new Error("Usuario owner no encontrado");
       error.statusCode = 404;

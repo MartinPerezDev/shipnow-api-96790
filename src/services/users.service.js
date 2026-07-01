@@ -1,4 +1,5 @@
 import { usersRepository } from "../repositories/users.repository.js";
+import { USER_ROLES } from "../constants/userroles.js";
 
 export const usersService = {
   getUsers: async () => {
@@ -24,7 +25,11 @@ export const usersService = {
       throw error;
     }
 
-    //falta validar si role contiene un valor valido
+    if (role && !Object.values(USER_ROLES).includes(role)) {
+      const error = new Error("Rol invalido");
+      error.statusCode = 400;
+      throw error;
+    }
 
     return usersRepository.create(userData);
   },

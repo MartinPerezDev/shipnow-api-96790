@@ -1,4 +1,8 @@
 import { ordersRepository } from "../repositories/orders.repository.js";
+import { usersRepository } from "../repositories/users.repository.js";
+import { storesRepository } from "../repositories/stores.repository.js";
+import { ORDER_STATUS } from "../constants/orderstatus.js";
+import { ORDER_PRIORITY } from "../constants/priority.js";
 
 export const ordersService = {
   getOrders: async () => {
@@ -25,14 +29,14 @@ export const ordersService = {
       throw error;
     }
 
-    const userFound = await ordersRepository.findCustomerById(customer);
+    const userFound = await usersRepository.findById(customer);
     if (!userFound) {
       const error = new Error("Usuario no encontrado");
       error.statusCode = 404;
       throw error;
     }
 
-    const storeFound = await ordersRepository.findStoreById(store)
+    const storeFound = await storesRepository.findById(store)
     if (!storeFound) {
       const error = new Error("Tienda no encontrada");
       error.statusCode = 404;
@@ -44,8 +48,8 @@ export const ordersService = {
     const newOrder = {
       ...orderData,
       total,
-      status: "created",
-      priority: "normal"
+      status: ORDER_STATUS.CREATED,
+      priority: ORDER_PRIORITY.NORMAL
     };
 
     return ordersRepository.create(newOrder);
