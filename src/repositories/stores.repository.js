@@ -1,6 +1,4 @@
 import StoreModel from "../models/store.model.js";
-import UserModel from "../models/user.model.js";
-
 
 export const storesRepository = {
   findAll: async () => {

@@ -1,988 +1,249 @@
-# Módulo 2 - Mocking y Datos de Prueba
+# ShipNow API
 
-## Objetivo del módulo
+API REST para gestionar usuarios, tiendas y pedidos de una plataforma simple de logistica de envios.
 
-En esta unidad incorporamos **Mocking** dentro del proyecto **ShipNow**.
+Esta version documenta las actualizaciones aplicadas en la clase 3: normalizacion de respuestas y manejo centralizado de errores.
 
-El objetivo es generar información simulada pero consistente para poder probar el comportamiento de la API sin depender de datos cargados manualmente en MongoDB.
+## Objetivo de la clase 3
 
-Trabajar con datos mock nos permite:
+Antes de esta actualizacion, cada controller armaba sus respuestas manualmente. Eso generaba repeticion y hacia que muchos errores esperados terminaran respondiendo como `500 Internal Server Error`.
 
-- Poblar rápidamente la base de datos.
-- Simular escenarios reales.
-- Validar endpoints existentes.
-- Facilitar tareas de testing.
-- Compartir un entorno de prueba similar entre todos los desarrolladores.
-- Evitar la carga manual de información repetitiva.
+El objetivo fue ordenar ese flujo para que:
 
----
+- Las respuestas exitosas tengan siempre la misma estructura.
+- Los errores se creen de forma consistente.
+- Los controllers deleguen los errores con `next(error)`.
+- Express tenga un middleware global para responder errores.
+- Las rutas inexistentes tambien usen el mismo formato de error.
 
-# ¿Qué es Mocking?
+## Archivos incorporados
 
-Mocking consiste en generar datos falsos pero con una estructura compatible con los modelos reales del proyecto.
-
-Por ejemplo:
-
-Un usuario mock:
-
-```json
-{
-  "firstName": "Martina",
-  "lastName": "Gómez",
-  "email": "martina@test.com",
-  "role": "customer"
-}
+```txt
+src/utils/apiResponse.js
+src/utils/errorDictionary.js
+src/middlewares/errorHandler.js
+src/middlewares/notFoundHandler.js
 ```
 
-Un pedido mock:
+## Respuestas normalizadas
 
-```json
-{
-  "customer": "687ab...",
-  "status": "created",
-  "priority": "high"
-}
-```
+Se creo `src/utils/apiResponse.js` para centralizar la forma de responder.
 
-Una tienda mock:
-
-```json
-{
-  "name": "Store Demo",
-  "owner": "687ac..."
-}
-```
-
-Estos datos son ficticios.
-
-No representan clientes reales.
-
-Su objetivo es permitir probar funcionalidades, endpoints y relaciones entre entidades durante el desarrollo.
-
----
-
-# Librerías incorporadas
-
-Instalamos FakerJS para generar información aleatoria.
-
-```bash
-npm install @faker-js/faker
-```
-
-Instalamos bcryptjs para generar contraseñas compatibles con el sistema de autenticación.
-
-```bash
-npm install bcryptjs
-```
-
----
-
-# Endpoints incorporados
-
-Durante este módulo agregamos un router específico para mocking.
-
-Base URL:
-
-```text
-/api/mocks
-```
-
-Endpoints disponibles:
-
-```http
-GET /api/mocks/mockingusers
-```
-
-Genera usuarios falsos.
-
-No guarda información en MongoDB.
-
----
-
-```http
-GET /api/mocks/mockingorders
-```
-
-Genera pedidos falsos.
-
-No guarda información en MongoDB.
-
----
-
-```http
-POST /api/mocks/generateData
-```
-
-Genera usuarios, tiendas y pedidos falsos e inserta la información en MongoDB.
-
-Ejemplo:
-
-```json
-{
-  "users": 20,
-  "stores": 5,
-  "orders": 50
-}
-```
-
-Respuesta:
+### Respuesta exitosa
 
 ```json
 {
   "status": "success",
-  "payload": {
-    "users": 20,
-    "stores": 12,
-    "orders": 50
-  }
-}
-```
-
----
-
-# Integración en app.js
-
-Se agregó la siguiente configuración:
-
-```js
-if(process.env.NODE_ENV !== 'production'){
-   app.use('/api/mocks', mocksRouter)
-}
-```
-
-## ¿Qué función cumple?
-
-Evita exponer endpoints de prueba en producción.
-
-De esta forma, el router de mocking solamente estará disponible durante el desarrollo.
-
-Esto impide que un usuario externo pueda insertar información falsa dentro de la base de datos productiva.
-
----
-
-# Router de Mocking
-
-Archivo:
-
-```text
-src/routes/mocks.router.js
-```
-
-Se agregaron tres endpoints.
-
-### GET /mockingusers
-
-```js
-router.get('/mockingusers', async (req, res) => {
-
-   const users = await generateMockUser()
-
-   res.status(200).json({
-      status:'success',
-      payload:users
-   })
-
-})
-```
-
-Genera usuarios falsos utilizando FakerJS.
-
-No realiza inserciones en MongoDB.
-
-Simplemente devuelve información simulada.
-
----
-
-### GET /mockingorders
-
-```js
-router.get('/mockingorders',(req,res)=>{
-
-   const orders = generateMockOrders(5)
-
-   res.status(200).json({
-      status:'success',
-      payload:orders
-   })
-
-})
-```
-
-Genera pedidos falsos.
-
-Los pedidos contienen:
-
-- Cliente
-- Tienda
-- Productos
-- Dirección
-- Total
-- Estado
-- Prioridad
-
-No modifica la base de datos.
-
----
-
-### POST /generateData
-
-```js
-router.post('/generateData', generateData)
-```
-
-Delega toda la lógica al controlador.
-
-El router únicamente recibe la petición y redirige la ejecución.
-
-La generación de datos y la persistencia quedan encapsuladas dentro del controller.
-
----
-
-# Carpeta mocks
-
-Se creó una carpeta dedicada a la generación de información simulada.
-
-```text
-src/mocks/
-```
-
-Estructura:
-
-```text
-users.mock.js
-stores.mock.js
-orders.mock.js
-```
-
-Esta separación permite mantener organizada la lógica de generación de datos.
-
----
-
-# users.mock.js
-
-Responsable de generar usuarios falsos.
-
-Se utiliza FakerJS para crear:
-
-- nombres
-- apellidos
-- correos electrónicos
-
-También se utiliza bcryptjs para generar una contraseña hasheada.
-
-```js
-const password = await bcrypt.hash("coder123",10)
-```
-
-De esta forma, los usuarios generados se comportan igual que los usuarios reales del sistema.
-
-Ejemplo generado:
-
-```json
-{
-  "firstName": "Lucas",
-  "lastName": "Fernandez",
-  "email": "lucas@test.com",
-  "password": "$2b$10$...",
-  "role": "customer"
-}
-```
-
-Los roles se seleccionan aleatoriamente utilizando:
-
-```js
-faker.helpers.arrayElement(availableRoles)
-```
-
-Roles posibles:
-
-```js
-CUSTOMER
-STORE
-```
-
-La función:
-
-```js
-generateMockUsers(quantity)
-```
-
-permite generar múltiples usuarios de manera automática.
-
----
-
-# stores.mock.js
-
-Responsable de generar tiendas falsas.
-
-Cada tienda se encuentra asociada a un propietario.
-
-```js
-return {
-
-   name: faker.company.name(),
-
-   address: faker.location.streetAddress(),
-
-   owner: ownerId,
-
-   isActive: faker.datatype.boolean()
-
-}
-```
-
-Cada Store creada queda vinculada con un usuario existente.
-
-Esto permite respetar las relaciones entre entidades.
-
----
-
-# orders.mock.js
-
-Responsable de generar pedidos falsos.
-
-Cada pedido contiene:
-
-- customer
-- store
-- items
-- deliveryAddress
-- total
-- status
-- priority
-
-Los productos se generan utilizando FakerJS.
-
-```js
-name: faker.commerce.productName()
-```
-
-La cantidad y precio son aleatorios.
-
-```js
-quantity: faker.number.int()
-
-price: faker.number.int()
-```
-
-El total se calcula automáticamente.
-
-```js
-const total = items.reduce(
-   (acc,item)=>acc + item.price * item.quantity,
-   0
-)
-```
-
-El estado del pedido se selecciona aleatoriamente utilizando las constantes del proyecto.
-
-```js
-faker.helpers.arrayElement(
-   Object.values(ORDER_STATUS)
-)
-```
-
-Estados posibles:
-
-```text
-created
-assigned
-picked_up
-in_transit
-delivered
-cancelled
-```
-
-La prioridad también se genera aleatoriamente.
-
-```js
-low
-normal
-high
-```
-
----
-
-# Controller de Mocking
-
-Archivo:
-
-```text
-src/controllers/mocks.controller.js
-```
-
-Este controlador contiene la lógica principal del endpoint:
-
-```http
-POST /api/mocks/generateData
-```
-
-Proceso completo:
-
-### 1. Leer cantidades recibidas
-
-```js
-const {
-   users = 10,
-   stores = 5,
-   orders = 20
-} = req.body
-```
-
----
-
-### 2. Generar usuarios
-
-```js
-const mockUsers =
-await generateMockUsers(users)
-```
-
----
-
-### 3. Insertar usuarios
-
-```js
-const createdUsers =
-await ordersRepository.insertManyUsers(
-   mockUsers
-)
-```
-
----
-
-### 4. Obtener propietarios
-
-```js
-const owners =
-createdUsers.filter(
-   user => user.role === USER_ROLES.STORE
-)
-```
-
----
-
-### 5. Obtener clientes
-
-```js
-const customers =
-createdUsers.filter(
-   user => user.role === USER_ROLES.CUSTOMER
-)
-```
-
----
-
-### 6. Generar tiendas
-
-```js
-const mockStores =
-generateMockStores(
-   owners
-)
-```
-
----
-
-### 7. Insertar tiendas
-
-```js
-const createdStores =
-await ordersRepository.insertManyStores(
-   mockStores
-)
-```
-
----
-
-### 8. Generar pedidos
-
-```js
-const mockOrders =
-generateMockOrders(
-   orders,
-   customers,
-   createdStores
-)
-```
-
----
-
-### 9. Insertar pedidos
-
-```js
-const createdOrders =
-await ordersRepository.insertManyOrders(
-   mockOrders
-)
-```
-
----
-
-### 10. Responder al cliente
-
-```js
-res.status(201).json({
-
-   status:'success',
-
-   payload:{
-
-      users:createdUsers.length,
-
-      stores:createdStores.length,
-
-      orders:createdOrders.length
-
-   }
-
-})
-```
-
----
-
-# Arquitectura implementada
-
-```text
-Routes
-  ↓
-
-Controllers
-  ↓
-
-Mocks
-  ↓
-
-Repositories
-  ↓
-
-MongoDB
-```
-
-Esta organización mantiene una arquitectura desacoplada, escalable y preparada para testing.
-
-El router no interactúa directamente con modelos de Mongoose.
-
-Toda la persistencia se realiza mediante repositories.
-
----
-
-# Resumen del módulo
-
-Durante la clase 2 incorporamos un sistema completo de mocking para ShipNow.
-
-Se implementó:
-
-✔ FakerJS
-
-✔ generación automática de usuarios
-
-✔ generación automática de tiendas
-
-✔ generación automática de pedidos
-
-✔ endpoints de visualización
-
-✔ endpoint de carga masiva
-
-✔ persistencia mediante repositories
-
-✔ protección de endpoints en producción
-
-
-Este mecanismo permite acelerar el desarrollo, poblar rápidamente la base de datos y preparar el proyecto para futuras etapas de testing automatizado.  
-
-&nbsp;
-##
-##
-&nbsp;  
-&nbsp;  
-&nbsp;
-&nbsp; 
-&nbsp;
-
-
-## Funcionamiento base de la API
-
-ShipNow API es una aplicación backend construida con Node.js, Express y MongoDB.
-
-En su estado base, la API permite trabajar con tres entidades principales:
-
-* Usuarios
-* Comercios
-* Pedidos
-
-La idea del proyecto es simular una API simple de logística/envíos.
-
-Un usuario puede representar a un cliente.
-Un comercio representa el lugar desde donde sale el pedido.
-Un pedido representa una solicitud de envío asociada a un usuario y a un comercio.
-
-### Flujo principal
-
-El flujo básico de la API es:
-
-1. Crear un usuario.
-2. Crear un comercio.
-3. Crear un pedido usando el ID del usuario y el ID del comercio.
-4. Consultar los pedidos.
-5. Actualizar el estado de un pedido.
-
-El pedido contiene una lista de items, una dirección de entrega, un total calculado y un estado.
-
-### Entidades principales
-
-### User
-
-Representa a un usuario dentro del sistema.
-
-Campos principales:
-
-```json
-{
-  "firstName": "Martina",
-  "lastName": "Gómez",
-  "email": "martina@test.com",
-  "password": "123456",
-  "role": "customer"
-}
-```
-
-Roles disponibles:
-
-```txt
-admin
-customer
-store
-```
-
-En esta versión base, el usuario se usa principalmente como cliente del pedido.
-
----
-
-### Store
-
-Representa un comercio.
-
-Campos principales:
-
-```json
-{
-  "name": "Kiosco Centro",
-  "address": "Av. Siempre Viva 742",
-  "owner": "ID_DEL_USUARIO"
-}
-```
-
-El campo `owner` guarda el ID de un usuario asociado al comercio.
-
----
-
-### Order
-
-Representa un pedido o envío.
-
-Campos principales:
-
-```json
-{
-  "customer": "ID_DEL_USUARIO",
-  "store": "ID_DEL_COMERCIO",
-  "deliveryAddress": "Av. Siempre Viva 742",
-  "items": [
-    {
-      "name": "Caja mediana",
-      "quantity": 2,
-      "price": 1500
-    }
-  ]
-}
-```
-
-Cuando se crea un pedido, la API calcula el total automáticamente recorriendo los items.
-
-Ejemplo:
-
-```txt
-2 unidades x $1500 = $3000
-```
-
-El pedido se crea inicialmente con estado:
-
-```txt
-created
-```
-
-Estados posibles del pedido:
-
-```txt
-created
-assigned
-picked_up
-in_transit
-delivered
-cancelled
-```
-
-### Endpoints disponibles
-
-### Health check
-
-Permite verificar que la API está funcionando.
-
-```http
-GET /health
-```
-
-Respuesta esperada:
-
-```json
-{
-  "status": "success",
-  "message": "API funcionando correctamente"
-}
-```
-
----
-
-## Users
-
-### Obtener usuarios
-
-```http
-GET /api/users
-```
-
-### Obtener usuario por ID
-
-```http
-GET /api/users/:uid
-```
-
-### Crear usuario
-
-```http
-POST /api/users
-```
-
-Body de ejemplo:
-
-```json
-{
-  "firstName": "Martina",
-  "lastName": "Gómez",
-  "email": "martina@test.com",
-  "password": "123456",
-  "role": "customer"
-}
-```
-
-### Actualizar usuario
-
-```http
-PUT /api/users/:uid
-```
-
-### Eliminar usuario
-
-```http
-DELETE /api/users/:uid
-```
-
----
-
-## Stores
-
-### Obtener comercios
-
-```http
-GET /api/stores
-```
-
-### Obtener comercio por ID
-
-```http
-GET /api/stores/:sid
-```
-
-### Crear comercio
-
-```http
-POST /api/stores
-```
-
-Body de ejemplo:
-
-```json
-{
-  "name": "Kiosco Centro",
-  "address": "Av. Siempre Viva 742",
-  "owner": "ID_DEL_USUARIO"
-}
-```
-
-### Actualizar comercio
-
-```http
-PUT /api/stores/:sid
-```
-
-### Eliminar comercio
-
-```http
-DELETE /api/stores/:sid
-```
-
----
-
-## Orders
-
-### Obtener pedidos
-
-```http
-GET /api/orders
-```
-
-### Obtener pedido por ID
-
-```http
-GET /api/orders/:oid
-```
-
-### Crear pedido
-
-```http
-POST /api/orders
-```
-
-Body de ejemplo:
-
-```json
-{
-  "customer": "ID_DEL_USUARIO",
-  "store": "ID_DEL_COMERCIO",
-  "deliveryAddress": "Av. Siempre Viva 742",
-  "items": [
-    {
-      "name": "Caja mediana",
-      "quantity": 2,
-      "price": 1500
-    },
-    {
-      "name": "Sobre chico",
-      "quantity": 1,
-      "price": 800
-    }
-  ]
-}
-```
-
-Respuesta esperada:
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "_id": "ID_DEL_PEDIDO",
-    "customer": "ID_DEL_USUARIO",
-    "store": "ID_DEL_COMERCIO",
-    "items": [
-      {
-        "name": "Caja mediana",
-        "quantity": 2,
-        "price": 1500
-      },
-      {
-        "name": "Sobre chico",
-        "quantity": 1,
-        "price": 800
-      }
-    ],
-    "deliveryAddress": "Av. Siempre Viva 742",
-    "total": 3800,
-    "status": "created"
-  }
-}
-```
-
-### Actualizar estado del pedido
-
-```http
-PUT /api/orders/:oid/status
-```
-
-Body de ejemplo:
-
-```json
-{
-  "status": "in_transit"
-}
-```
-
-### Eliminar pedido
-
-```http
-DELETE /api/orders/:oid
-```
-
----
-
-## Formato general de respuestas
-
-Las respuestas exitosas siguen una estructura simple:
-
-```json
-{
-  "status": "success",
+  "message": "Usuario creado correctamente",
   "payload": {}
 }
 ```
 
-Las respuestas de error, en esta versión base, todavía se manejan de forma simple desde las rutas:
+Los controllers usan:
+
+```js
+successResponse(res, {
+  statusCode: 201,
+  message: "Usuario agregado correctamente",
+  payload: user
+});
+```
+
+### Respuesta de error
 
 ```json
 {
   "status": "error",
+  "error": "USER_NOT_FOUND",
   "message": "Usuario no encontrado"
 }
 ```
 
-Más adelante, el proyecto será refactorizado para incorporar una capa centralizada de manejo de errores.
+Los errores se responden desde el middleware global, no desde cada controller.
 
-## Estado actual del proyecto
+## Diccionario de errores
 
-Esta versión base de ShipNow funciona, pero todavía no representa una API completamente profesional.
+Se creo `src/utils/errorDictionary.js` para centralizar los errores conocidos de la API.
 
-Actualmente el proyecto tiene:
+Ejemplos:
 
-```txt
-app.js
-server.js
-models
-routes
-controllers
-services
-repositories
-config/db.js
-config/env.js
+```js
+USER_NOT_FOUND: {
+  statusCode: 404,
+  message: "Usuario no encontrado"
+}
 ```
 
-Todavía no incorpora:
-
-```txt
-middleware global de errores
-logger profesional
-Swagger
-tests automatizados
-Multer
-Docker
+```js
+ORDER_ITEMS_REQUIRED: {
+  statusCode: 400,
+  message: "El pedido debe incluir al menos un item"
+}
 ```
 
-Durante el curso, la API será mejorada progresivamente para separar responsabilidades, mejorar la mantenibilidad y acercarse a una estructura más profesional.
+Esto permite que los services lancen errores usando codigos claros:
 
-Clase 1:
-```txt 
--> Mejoramos la arquitectura añadiendo "controllers", "services" y "repositories" para separar responsabilidades.
-
--> Añadimos el archivo ./config/env.js para centralizar la configuración de variables de entorno.
+```js
+throw createError("USER_NOT_FOUND");
 ```
+
+## Creacion de errores
+
+Tambien se agrego `createError` dentro de `src/utils/apiResponse.js`.
+
+Su responsabilidad es:
+
+- Buscar el error en el diccionario.
+- Crear un `Error`.
+- Agregarle `statusCode`.
+- Agregarle un `code`.
+
+Ejemplo de uso:
+
+```js
+if (!user) {
+  throw createError("USER_NOT_FOUND");
+}
+```
+
+De esta forma evitamos repetir:
+
+```js
+const error = new Error("Usuario no encontrado");
+error.statusCode = 404;
+throw error;
+```
+
+## Controllers actualizados
+
+Los controllers ahora usan `successResponse` para respuestas correctas y `next(error)` para delegar errores.
+
+Ejemplo:
+
+```js
+export const getUserById = async (req, res, next) => {
+  try {
+    const user = await usersService.getUserById(req.params.uid);
+
+    return successResponse(res, {
+      message: "Obtener usuario por id",
+      payload: user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+```
+
+Con este cambio, el controller deja de decidir como se responde un error. Solo lo envia al middleware correspondiente.
+
+## Middleware global de errores
+
+Se creo `src/middlewares/errorHandler.js`.
+
+Este middleware recibe cualquier error que llegue por `next(error)` y responde con el formato definido por `errorResponse`.
+
+Tambien contempla IDs invalidos de MongoDB:
+
+```js
+if (error.name === "CastError") {
+  handledError = createError("VALIDATION_ERROR", "ID invalido");
+}
+```
+
+Esto evita que un ObjectId mal formado devuelva una respuesta interna de Mongoose.
+
+## Middleware de rutas inexistentes
+
+Se creo `src/middlewares/notFoundHandler.js`.
+
+Su funcion es transformar cualquier ruta no encontrada en un error controlado:
+
+```js
+next(createError("ROUTE_NOT_FOUND"));
+```
+
+Respuesta esperada:
+
+```json
+{
+  "status": "error",
+  "error": "ROUTE_NOT_FOUND",
+  "message": "Ruta no encontrada"
+}
+```
+
+## Registro en app.js
+
+Los middlewares de error se registran al final de `src/app.js`.
+
+```js
+app.use("/api/users", usersRouter);
+app.use("/api/stores", storesRouter);
+app.use("/api/orders", ordersRouter);
+
+if (!envConfig.isProd) {
+  app.use("/api/mocks", mocksRouter);
+}
+
+app.use(notFoundHandler);
+app.use(errorHandler);
+```
+
+El orden es importante:
+
+1. Primero se registran las rutas reales.
+2. Luego se captura cualquier ruta inexistente.
+3. Al final se responde cualquier error centralizado.
+
+## Validacion agregada en Orders
+
+En `orders.service.js` se agrego una validacion antes de calcular el total del pedido.
+
+Antes, si `items` no era un array, el `reduce` podia romper con un error interno.
+
+Ahora se valida:
+
+```js
+if (!Array.isArray(items) || items.length === 0) {
+  throw createError("ORDER_ITEMS_REQUIRED");
+}
+```
+
+Esto transforma un error tecnico en una respuesta clara para el cliente:
+
+```json
+{
+  "status": "error",
+  "error": "ORDER_ITEMS_REQUIRED",
+  "message": "El pedido debe incluir al menos un item"
+}
+```
+
+## Variables de entorno
+
+Se agrego `isProd` dentro de `envConfig` para evitar consultar `process.env.NODE_ENV` directamente desde `app.js`.
+
+```js
+isProd: process.env.NODE_ENV === "production"
+```
+
+Esto mantiene la configuracion centralizada en `src/config/env.js`.
+
+## Resumen
+
+En esta clase se mejoro la estructura general de la API sin agregar librerias externas.
+
+Se implemento:
+
+- Helper para respuestas exitosas.
+- Helper para respuestas de error.
+- Diccionario centralizado de errores.
+- Funcion `createError`.
+- Middleware global de errores.
+- Middleware para rutas inexistentes.
+- Refactor de controllers para usar `next(error)`.
+- Validacion de `items` en pedidos.
+- Uso de `envConfig.isProd` en `app.js`.
+
+La API queda mas consistente, mas facil de mantener y preparada para seguir creciendo con nuevas validaciones.

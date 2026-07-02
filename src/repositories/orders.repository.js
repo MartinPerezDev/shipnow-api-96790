@@ -1,6 +1,4 @@
 import OrderModel from "../models/order.model.js";
-import UserModel from "../models/user.model.js";
-import StoreModel from "../models/store.model.js";
 
 export const ordersRepository = {
   findAll: async () => {

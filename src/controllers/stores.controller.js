@@ -1,47 +1,68 @@
 import { storesService } from "../services/stores.service.js";
+import { successResponse } from "../utils/apiResponse.js";
 
-export const getStores = async (req, res) => {
+export const getStores = async (req, res, next) => {
   try {
     const stores = await storesService.getStores();
 
-    res.json({ status: "success", payload: stores });
+    return successResponse(res, {
+      message: "Lista de tiendas",
+      payload: stores
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-export const getStoreById = async (req, res) => {
+export const getStoreById = async (req, res, next) => {
   try {
     const store = await storesService.getStoreById(req.params.sid);
-    res.json({ status: "success", payload: store });
+
+    return successResponse(res, {
+      message: "Obtener tienda por id",
+      payload: store
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-export const createStore = async (req, res) => {
+export const createStore = async (req, res, next) => {
   try {
     const store = await storesService.createStore(req.body);
-    res.status(201).json({ status: "success", payload: store });
+
+    return successResponse(res, {
+      statusCode: 201,
+      message: "Tienda agregada correctamente",
+      payload: store
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-export const updateStore = async (req, res) => {
+export const updateStore = async (req, res, next) => {
   try {
     const store = await storesService.updateStore(req.params.sid, req.body);
-    res.json({ status: "success", payload: store });
+
+    return successResponse(res, {
+      message: "Tienda actualizada",
+      payload: store
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    next(error);
   }
 };
 
-export const deleteStore = async (req, res) => {
+export const deleteStore = async (req, res, next) => {
   try {
     const store = await storesService.deleteStore(req.params.sid);
-    res.json({ status: "success", payload: store });
+
+    return successResponse(res, {
+      message: "Tienda eliminada",
+      payload: store
+    });
   } catch (error) {
-    res.status(500).json({ status: "error", message: error.message });
+    next(error);
   }
 };
