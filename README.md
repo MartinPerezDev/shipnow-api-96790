@@ -1,3 +1,685 @@
+# Endpoint `POST /api/mocks/generateData`
+
+Este endpoint permite generar e insertar grandes cantidades de datos falsos en MongoDB utilizando Faker.
+
+A diferencia de:
+
+- `GET /api/mocks/mockingusers`
+- `GET /api/mocks/mockingorders`
+
+el endpoint:
+
+```http
+POST /api/mocks/generateData
+```
+
+sí persiste información en la base de datos.
+
+Este endpoint fue completado luego de la clase para automatizar la creación de:
+
+- Users
+- Stores
+- Orders
+
+manteniendo las relaciones reales entre las entidades.
+
+---
+
+# Objetivo
+
+Poder poblar rápidamente la base de datos para:
+
+- desarrollo
+- pruebas manuales
+- testing
+- simulación de escenarios reales
+
+sin necesidad de crear documentos manualmente desde Postman.
+
+---
+
+# Arquitectura utilizada
+
+La implementación respeta la arquitectura utilizada durante todo el proyecto.
+
+```text
+MongoDB
+   ↓
+Repository
+   ↓
+Controller
+   ↓
+Router
+   ↓
+Express
+```
+
+---
+
+# Archivos involucrados
+
+```text
+src/
+
+controllers/
+└── mocks.controller.js
+
+mocks/
+├── users.mocks.js
+├── stores.mocks.js
+└── orders.mocks.js
+
+repositories/
+├── users.repository.js
+├── store.repository.js
+└── orders.repository.js
+
+routes/
+└── mocks.router.js
+```
+
+---
+
+# Paso 1 - Crear repository de Stores
+
+## Archivo
+
+```text
+src/repositories/store.repository.js
+```
+
+Este repository se encarga de insertar múltiples stores en MongoDB.
+
+```javascript
+import StoreModel from "../models/store.model.js";
+
+export const insertManyStores = async (stores) => {
+
+   return await StoreModel.insertMany(stores);
+
+};
+```
+
+---
+
+# Paso 2 - Crear generador de Stores
+
+## Archivo
+
+```text
+src/mocks/stores.mocks.js
+```
+
+El endpoint `/generateData` requiere stores reales para poder asociarlos posteriormente a las órdenes.
+
+```javascript
+import { faker } from "@faker-js/faker";
+
+export const generateMockStore = (ownerId) => {
+
+   return {
+
+      name: faker.company.name(),
+
+      email: faker.internet.email(),
+
+      address: faker.location.streetAddress(),
+
+      owner: ownerId
+
+   };
+
+};
+```
+
+Generar múltiples stores:
+
+```javascript
+export const generateMockStores = (quantity, users) => {
+
+   return Array.from(
+
+      { length: quantity },
+
+      () => {
+
+         const randomUser = users[
+            Math.floor(Math.random() * users.length)
+         ];
+
+         return generateMockStore(
+            randomUser._id
+         );
+
+      }
+
+   );
+
+};
+```
+
+---
+
+# Paso 3 - Adaptar orders.mocks.js
+
+## Archivo
+
+```text
+src/mocks/orders.mocks.js
+```
+
+Las órdenes necesitan conocer:
+
+- quién realizó el pedido
+- qué store recibirá el pedido
+
+Por ello el generador recibe:
+
+```javascript
+(customerId, storeId)
+```
+
+```javascript
+import { faker } from "@faker-js/faker";
+
+import { ORDER_STATUS } from "../constants/orderStatus.js";
+
+import { DELIVERY_PRIORITY } from "../constants/deliveryPriority.js";
+
+
+export const generateMockOrder = (customerId, storeId) => {
+
+   const items = [
+
+      {
+
+         name: faker.commerce.productName(),
+
+         quantity: faker.number.int({
+
+            min:1,
+
+            max:10
+
+         }),
+
+         price: faker.number.int({
+
+            min:1000,
+
+            max:10000
+
+         })
+
+      }
+
+   ];
+
+   const total = items.reduce(
+
+      (acc,item) => acc + item.quantity * item.price,
+
+      0
+
+   );
+
+   return {
+
+      customer: customerId,
+
+      store: storeId,
+
+      items,
+
+      deliveryAddress:
+
+         faker.location.streetAddress(),
+
+      total,
+
+      status:
+
+         ORDER_STATUS.CREATED,
+
+      priority:
+
+         DELIVERY_PRIORITY.NORMAL
+
+   };
+
+};
+```
+
+---
+
+# Paso 4 - Implementar generateData()
+
+## Archivo
+
+```text
+src/controllers/mocks.controller.js
+```
+
+Este controlador es el encargado de:
+
+- validar datos
+- generar usuarios
+- insertar usuarios
+- generar stores
+- insertar stores
+- generar órdenes
+- insertar órdenes
+- responder al cliente
+
+---
+
+Obtener cantidades:
+
+```javascript
+const {
+
+   users = 0,
+
+   stores = 0,
+
+   orders = 0
+
+} = req.body;
+```
+
+---
+
+Generar usuarios:
+
+```javascript
+const mockUsers =
+
+   generateMockUsers(users);
+
+
+const generatedUsers =
+
+   await insertManyUsers(
+
+      mockUsers
+
+   );
+```
+
+---
+
+Generar stores:
+
+```javascript
+const mockStores =
+
+   generateMockStores(
+
+      stores,
+
+      generatedUsers
+
+   );
+
+
+const generatedStores =
+
+   await insertManyStores(
+
+      mockStores
+
+   );
+```
+
+---
+
+Generar órdenes relacionadas:
+
+```javascript
+const mockOrders = Array.from(
+
+   { length: orders },
+
+   () => {
+
+      const randomUser =
+
+         generatedUsers[
+
+            Math.floor(
+
+               Math.random()
+
+               *
+
+               generatedUsers.length
+
+            )
+
+         ];
+
+
+      const randomStore =
+
+         generatedStores[
+
+            Math.floor(
+
+               Math.random()
+
+               *
+
+               generatedStores.length
+
+            )
+
+         ];
+
+
+      return generateMockOrder(
+
+         randomUser._id,
+
+         randomStore._id
+
+      );
+
+   }
+
+);
+```
+
+---
+
+Insertar órdenes:
+
+```javascript
+const generatedOrders =
+
+   await insertManyOrders(
+
+      mockOrders
+
+   );
+```
+
+---
+
+Responder al cliente:
+
+```javascript
+return res.status(201).json({
+
+   status:"success",
+
+   message:
+
+      "Data generated successfully",
+
+   users: generatedUsers,
+
+   orders: generatedOrders
+
+});
+```
+
+---
+
+# Paso 5 - Registrar endpoint
+
+## Archivo
+
+```text
+src/routes/mocks.router.js
+```
+
+```javascript
+router.post(
+
+   "/generateData",
+
+   generateData
+
+);
+```
+
+---
+
+# Paso 6 - Probar desde Postman
+
+Método:
+
+```http
+POST
+```
+
+URL:
+
+```text
+http://localhost:8080/api/mocks/generateData
+```
+
+Body:
+
+```json
+{
+   "users":20,
+   "stores":5,
+   "orders":50
+}
+```
+
+---
+
+Respuesta esperada:
+
+```json
+{
+   "status":"success",
+
+   "message":"Data generated successfully",
+
+   "users":[...],
+
+   "orders":[...]
+}
+```
+
+Además de la respuesta en Postman, los documentos quedan almacenados en MongoDB.
+
+---
+
+# Constantes utilizadas
+
+## USER_ROLES
+
+```javascript
+export const USER_ROLES = {
+
+   ADMIN:'admin',
+
+   CUSTOMER:'customer',
+
+   DRIVER:'driver',
+
+   STORE:'store'
+
+};
+```
+
+Para esta implementación solamente se generan usuarios con rol:
+
+```javascript
+USER_ROLES.CUSTOMER
+```
+
+---
+
+## ORDER_STATUS
+
+```javascript
+export const ORDER_STATUS = {
+
+   CREATED:'created',
+
+   ASSIGNED:'assigned',
+
+   DELIVERED:'delivered',
+
+   CANCELLED:'cancelled'
+
+};
+```
+
+En esta versión del mock todas las órdenes se crean inicialmente con:
+
+```javascript
+ORDER_STATUS.CREATED
+```
+
+---
+
+## DELIVERY_PRIORITY
+
+```javascript
+export const DELIVERY_PRIORITY = {
+
+   LOW:'low',
+
+   NORMAL:'normal',
+
+   HIGH:'high'
+
+};
+```
+
+Por simplicidad se utiliza:
+
+```javascript
+DELIVERY_PRIORITY.NORMAL
+```
+
+aunque podría seleccionarse aleatoriamente en futuras mejoras.
+
+---
+
+# Errores comunes
+
+### Order validation failed
+
+```text
+total is required
+
+customer is required
+
+store is required
+
+deliveryAddress is required
+```
+
+Este error suele aparecer cuando el generador de órdenes no recibe correctamente:
+
+```javascript
+customerId
+```
+
+o
+
+```javascript
+storeId
+```
+
+La función correcta es:
+
+```javascript
+generateMockOrder(
+
+   randomUser._id,
+
+   randomStore._id
+
+);
+```
+
+---
+
+### Cannot read properties of undefined (reading '_id')
+
+Este error aparece cuando:
+
+```javascript
+generatedUsers
+```
+
+o
+
+```javascript
+generatedStores
+```
+
+están vacíos.
+
+Es recomendable verificar:
+
+```javascript
+console.log(generatedUsers.length);
+
+console.log(generatedStores.length);
+```
+
+antes de generar las órdenes.
+
+---
+
+### Store validation failed
+
+```text
+owner is required
+```
+
+El modelo Store requiere:
+
+```javascript
+owner
+```
+
+por lo tanto el mock debe incluir:
+
+```javascript
+owner: ownerId
+```
+
+---
+
+# Resultado final
+
+El endpoint `/generateData` quedó funcionando correctamente.
+
+Actualmente permite:
+
+✅ Generar usuarios
+
+✅ Generar stores
+
+✅ Generar pedidos
+
+✅ Relacionar Orders con Users
+
+✅ Relacionar Orders con Stores
+
+✅ Insertar todo en MongoDB
+
+✅ Poblar rápidamente la base de datos
+
+✅ Preparar el proyecto para futuras pruebas y testing
+
+<br><br>
+
+---
+
+<br><br>
+
+
 ## Funcionamiento base de la API
 
 ShipNow API es una aplicación backend construida con Node.js, Express y MongoDB.
