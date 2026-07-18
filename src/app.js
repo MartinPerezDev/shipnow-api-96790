@@ -8,6 +8,8 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { envConfig } from "./config/env.js";
 
+
+
 const app = express();
 //Bloque 1 - middleware de configuracion
 app.use(cors());
