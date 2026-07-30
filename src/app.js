@@ -4,6 +4,7 @@ import usersRouter from "./routes/users.router.js";
 import storesRouter from "./routes/stores.router.js";
 import ordersRouter from "./routes/orders.router.js";
 import mocksRouter from './routes/mocks.router.js'
+import docsRouter from "./routes/docs.router.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { notFoundHandler } from "./middlewares/notFoundHandler.js";
 import { envConfig } from "./config/env.js";
@@ -33,6 +34,7 @@ app.get("/health", (req, res) => {
 app.use("/api/users", usersRouter);
 app.use("/api/stores", storesRouter);
 app.use("/api/orders", ordersRouter);
+app.use("/api/docs", docsRouter);
 
 
 // Protegemos router de mocks para que no quede expuesto en producción

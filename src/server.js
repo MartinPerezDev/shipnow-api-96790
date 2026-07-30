@@ -12,11 +12,16 @@ const startServer = async () => {
     await connectDB();
 
     app.listen(PORT, () => {
-      // console.log(`Servidor escuchando en el puerto ${PORT}`); 
-      logger.info(`Servidor escuchando en el puerto ${PORT}`);
+      logger.info("Servidor iniciado", {
+        port: PORT,
+        environment: envConfig.nodeEnv
+      });
     });
   } catch (error) {
-    console.error(`Error al iniciar el servidor: ${error.message}`);
+    logger.fatal("Error al iniciar el servidor", {
+      error: error.message,
+      stack: error.stack
+    });
     process.exit(1);
   }
 };
