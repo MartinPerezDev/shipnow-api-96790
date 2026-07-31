@@ -4,6 +4,7 @@ import { generateMockOrders } from "../mocks/orders.mock.js";
 import { ordersRepository } from "../repositories/orders.repository.js";
 import { storesRepository } from "../repositories/stores.repository.js";
 import { usersRepository } from "../repositories/users.repository.js";
+import logger from "../config/logger.js";
 
 import { USER_ROLES } from "../constants/userroles.js";
 
@@ -33,6 +34,12 @@ export const generateData = async (req, res) => {
     //insertar las ordernes en la colection de orders
     const createdOrders = await ordersRepository.insertManyOrders(mockOrders);
 
+    logger.info('Data generated successfully', {
+      users: createdUsers.length,
+      stores: createdStores.length,
+      orders: createdOrders.length
+    });
+
     res.status(201).json({
       status: 'success',
       payload: {
@@ -43,7 +50,7 @@ export const generateData = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error generating data:', error);
+    logger.error('Error generating data:', error);
     res.status(500).json({
       status: 'error',
       message: error.message

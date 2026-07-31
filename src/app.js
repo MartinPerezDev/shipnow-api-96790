@@ -27,9 +27,9 @@ app.use("/api/orders", ordersRouter);
 
 
 // Protegemos router de mocks para que no quede expuesto en producción
-if (process.env.NODE_ENV !== 'production') {
+// if (process.env.NODE_ENV !== 'production') {
   app.use('/api/mocks', mocksRouter)
-}
+// }
 
 //Bloque 4 - middlewares de errores
 app.use(notFoundHandler);

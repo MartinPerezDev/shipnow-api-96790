@@ -4,6 +4,7 @@ import { successResponse } from "../utils/apiResponse.js";
 export const getUsers = async (req, res, next) => {
   try {
     const users = await usersService.getUsers();
+    // console.log("Usuarios obtenidos:", users);
     successResponse(res, { message: "Lista de usuarios", payload: users });
   } catch (error) {
     next(error);
@@ -22,6 +23,7 @@ export const getUserById = async (req, res, next) => {
 export const createUser = async (req, res, next) => {
   try {
     const user = await usersService.createUser(req.body);
+    console.log("Usuario creado:", user);
     successResponse(res, { statusCode: 201, message: "Usuario creado", payload: user });
   } catch (error) {
     next(error);
