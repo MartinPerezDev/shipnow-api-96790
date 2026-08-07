@@ -1,988 +1,130 @@
-# Módulo 2 - Mocking y Datos de Prueba
+# Backend - Clase 5
 
-## Objetivo del módulo
+Proyecto backend desarrollado con Node.js, Express y MongoDB. Este proyecto corresponde a la Clase 5 del curso de Backend II, enfocado en la **Documentación de API con Swagger**.
 
-En esta unidad incorporamos **Mocking** dentro del proyecto **ShipNow**.
+## Tecnologías Utilizadas
 
-El objetivo es generar información simulada pero consistente para poder probar el comportamiento de la API sin depender de datos cargados manualmente en MongoDB.
+- **Node.js** - Entorno de ejecución JavaScript
+- **Express** - Framework web para Node.js
+- **MongoDB** - Base de datos NoSQL
+- **Mongoose** - ODM para MongoDB
+- **bcryptjs** - Encriptación de contraseñas
+- **jsonwebtoken** - Generación y verificación de tokens JWT
+- **cookie-parser** - Middleware para parsear cookies
+- **swagger-ui-express** - Interfaz de usuario para Swagger
+- **swagger-jsdoc** - Generación de documentación Swagger desde JSDoc
+- **dotenv** - Gestión de variables de entorno
+- **nodemon** - Herramienta de desarrollo para reiniciar automáticamente el servidor
 
-Trabajar con datos mock nos permite:
+## Instalación
 
-- Poblar rápidamente la base de datos.
-- Simular escenarios reales.
-- Validar endpoints existentes.
-- Facilitar tareas de testing.
-- Compartir un entorno de prueba similar entre todos los desarrolladores.
-- Evitar la carga manual de información repetitiva.
-
----
-
-# ¿Qué es Mocking?
-
-Mocking consiste en generar datos falsos pero con una estructura compatible con los modelos reales del proyecto.
-
-Por ejemplo:
-
-Un usuario mock:
-
-```json
-{
-  "firstName": "Martina",
-  "lastName": "Gómez",
-  "email": "martina@test.com",
-  "role": "customer"
-}
-```
-
-Un pedido mock:
-
-```json
-{
-  "customer": "687ab...",
-  "status": "created",
-  "priority": "high"
-}
-```
-
-Una tienda mock:
-
-```json
-{
-  "name": "Store Demo",
-  "owner": "687ac..."
-}
-```
-
-Estos datos son ficticios.
-
-No representan clientes reales.
-
-Su objetivo es permitir probar funcionalidades, endpoints y relaciones entre entidades durante el desarrollo.
-
----
-
-# Librerías incorporadas
-
-Instalamos FakerJS para generar información aleatoria.
+1. Clonar el repositorio
+2. Instalar las dependencias:
 
 ```bash
-npm install @faker-js/faker
+npm install
 ```
 
-Instalamos bcryptjs para generar contraseñas compatibles con el sistema de autenticación.
+## Configuración
+
+1. Copiar el archivo de ejemplo de variables de entorno:
 
 ```bash
-npm install bcryptjs
+cp .env.example .env
 ```
 
----
+2. Configurar las variables de entorno en el archivo `.env`:
 
-# Endpoints incorporados
-
-Durante este módulo agregamos un router específico para mocking.
-
-Base URL:
-
-```text
-/api/mocks
-```
-
-Endpoints disponibles:
-
-```http
-GET /api/mocks/mockingusers
-```
-
-Genera usuarios falsos.
-
-No guarda información en MongoDB.
-
----
-
-```http
-GET /api/mocks/mockingorders
-```
-
-Genera pedidos falsos.
-
-No guarda información en MongoDB.
-
----
-
-```http
-POST /api/mocks/generateData
-```
-
-Genera usuarios, tiendas y pedidos falsos e inserta la información en MongoDB.
-
-Ejemplo:
-
-```json
-{
-  "users": 20,
-  "stores": 5,
-  "orders": 50
-}
-```
-
-Respuesta:
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "users": 20,
-    "stores": 12,
-    "orders": 50
-  }
-}
-```
-
----
-
-# Integración en app.js
-
-Se agregó la siguiente configuración:
-
-```js
-if(process.env.NODE_ENV !== 'production'){
-   app.use('/api/mocks', mocksRouter)
-}
-```
-
-## ¿Qué función cumple?
-
-Evita exponer endpoints de prueba en producción.
-
-De esta forma, el router de mocking solamente estará disponible durante el desarrollo.
-
-Esto impide que un usuario externo pueda insertar información falsa dentro de la base de datos productiva.
-
----
-
-# Router de Mocking
-
-Archivo:
-
-```text
-src/routes/mocks.router.js
-```
-
-Se agregaron tres endpoints.
-
-### GET /mockingusers
-
-```js
-router.get('/mockingusers', async (req, res) => {
-
-   const users = await generateMockUser()
-
-   res.status(200).json({
-      status:'success',
-      payload:users
-   })
-
-})
-```
-
-Genera usuarios falsos utilizando FakerJS.
-
-No realiza inserciones en MongoDB.
-
-Simplemente devuelve información simulada.
-
----
-
-### GET /mockingorders
-
-```js
-router.get('/mockingorders',(req,res)=>{
-
-   const orders = generateMockOrders(5)
-
-   res.status(200).json({
-      status:'success',
-      payload:orders
-   })
-
-})
-```
-
-Genera pedidos falsos.
-
-Los pedidos contienen:
-
-- Cliente
-- Tienda
-- Productos
-- Dirección
-- Total
-- Estado
-- Prioridad
-
-No modifica la base de datos.
-
----
-
-### POST /generateData
-
-```js
-router.post('/generateData', generateData)
-```
-
-Delega toda la lógica al controlador.
-
-El router únicamente recibe la petición y redirige la ejecución.
-
-La generación de datos y la persistencia quedan encapsuladas dentro del controller.
-
----
-
-# Carpeta mocks
-
-Se creó una carpeta dedicada a la generación de información simulada.
-
-```text
-src/mocks/
-```
-
-Estructura:
-
-```text
-users.mock.js
-stores.mock.js
-orders.mock.js
-```
-
-Esta separación permite mantener organizada la lógica de generación de datos.
-
----
-
-# users.mock.js
-
-Responsable de generar usuarios falsos.
-
-Se utiliza FakerJS para crear:
-
-- nombres
-- apellidos
-- correos electrónicos
-
-También se utiliza bcryptjs para generar una contraseña hasheada.
-
-```js
-const password = await bcrypt.hash("coder123",10)
-```
-
-De esta forma, los usuarios generados se comportan igual que los usuarios reales del sistema.
-
-Ejemplo generado:
-
-```json
-{
-  "firstName": "Lucas",
-  "lastName": "Fernandez",
-  "email": "lucas@test.com",
-  "password": "$2b$10$...",
-  "role": "customer"
-}
-```
-
-Los roles se seleccionan aleatoriamente utilizando:
-
-```js
-faker.helpers.arrayElement(availableRoles)
-```
-
-Roles posibles:
-
-```js
-CUSTOMER
-STORE
-```
-
-La función:
-
-```js
-generateMockUsers(quantity)
-```
-
-permite generar múltiples usuarios de manera automática.
-
----
-
-# stores.mock.js
-
-Responsable de generar tiendas falsas.
-
-Cada tienda se encuentra asociada a un propietario.
-
-```js
-return {
-
-   name: faker.company.name(),
-
-   address: faker.location.streetAddress(),
-
-   owner: ownerId,
-
-   isActive: faker.datatype.boolean()
-
-}
-```
-
-Cada Store creada queda vinculada con un usuario existente.
-
-Esto permite respetar las relaciones entre entidades.
-
----
-
-# orders.mock.js
-
-Responsable de generar pedidos falsos.
-
-Cada pedido contiene:
-
-- customer
-- store
-- items
-- deliveryAddress
-- total
-- status
-- priority
-
-Los productos se generan utilizando FakerJS.
-
-```js
-name: faker.commerce.productName()
-```
-
-La cantidad y precio son aleatorios.
-
-```js
-quantity: faker.number.int()
-
-price: faker.number.int()
-```
-
-El total se calcula automáticamente.
-
-```js
-const total = items.reduce(
-   (acc,item)=>acc + item.price * item.quantity,
-   0
-)
-```
-
-El estado del pedido se selecciona aleatoriamente utilizando las constantes del proyecto.
-
-```js
-faker.helpers.arrayElement(
-   Object.values(ORDER_STATUS)
-)
-```
-
-Estados posibles:
-
-```text
-created
-assigned
-picked_up
-in_transit
-delivered
-cancelled
-```
-
-La prioridad también se genera aleatoriamente.
-
-```js
-low
-normal
-high
-```
-
----
-
-# Controller de Mocking
-
-Archivo:
-
-```text
-src/controllers/mocks.controller.js
-```
-
-Este controlador contiene la lógica principal del endpoint:
-
-```http
-POST /api/mocks/generateData
-```
-
-Proceso completo:
-
-### 1. Leer cantidades recibidas
-
-```js
-const {
-   users = 10,
-   stores = 5,
-   orders = 20
-} = req.body
-```
-
----
-
-### 2. Generar usuarios
-
-```js
-const mockUsers =
-await generateMockUsers(users)
-```
-
----
-
-### 3. Insertar usuarios
-
-```js
-const createdUsers =
-await ordersRepository.insertManyUsers(
-   mockUsers
-)
-```
-
----
-
-### 4. Obtener propietarios
-
-```js
-const owners =
-createdUsers.filter(
-   user => user.role === USER_ROLES.STORE
-)
-```
-
----
-
-### 5. Obtener clientes
-
-```js
-const customers =
-createdUsers.filter(
-   user => user.role === USER_ROLES.CUSTOMER
-)
-```
-
----
-
-### 6. Generar tiendas
-
-```js
-const mockStores =
-generateMockStores(
-   owners
-)
-```
-
----
-
-### 7. Insertar tiendas
-
-```js
-const createdStores =
-await ordersRepository.insertManyStores(
-   mockStores
-)
-```
-
----
-
-### 8. Generar pedidos
-
-```js
-const mockOrders =
-generateMockOrders(
-   orders,
-   customers,
-   createdStores
-)
-```
-
----
-
-### 9. Insertar pedidos
-
-```js
-const createdOrders =
-await ordersRepository.insertManyOrders(
-   mockOrders
-)
-```
-
----
-
-### 10. Responder al cliente
-
-```js
-res.status(201).json({
-
-   status:'success',
-
-   payload:{
-
-      users:createdUsers.length,
-
-      stores:createdStores.length,
-
-      orders:createdOrders.length
-
-   }
-
-})
-```
-
----
-
-# Arquitectura implementada
-
-```text
-Routes
-  ↓
-
-Controllers
-  ↓
-
-Mocks
-  ↓
-
-Repositories
-  ↓
-
-MongoDB
-```
-
-Esta organización mantiene una arquitectura desacoplada, escalable y preparada para testing.
-
-El router no interactúa directamente con modelos de Mongoose.
-
-Toda la persistencia se realiza mediante repositories.
-
----
-
-# Resumen del módulo
-
-Durante la clase 2 incorporamos un sistema completo de mocking para ShipNow.
-
-Se implementó:
-
-✔ FakerJS
-
-✔ generación automática de usuarios
-
-✔ generación automática de tiendas
-
-✔ generación automática de pedidos
-
-✔ endpoints de visualización
-
-✔ endpoint de carga masiva
-
-✔ persistencia mediante repositories
-
-✔ protección de endpoints en producción
-
-
-Este mecanismo permite acelerar el desarrollo, poblar rápidamente la base de datos y preparar el proyecto para futuras etapas de testing automatizado.  
-
-&nbsp;
-##
-##
-&nbsp;  
-&nbsp;  
-&nbsp;
-&nbsp; 
-&nbsp;
-
-
-## Funcionamiento base de la API
-
-ShipNow API es una aplicación backend construida con Node.js, Express y MongoDB.
-
-En su estado base, la API permite trabajar con tres entidades principales:
-
-* Usuarios
-* Comercios
-* Pedidos
-
-La idea del proyecto es simular una API simple de logística/envíos.
-
-Un usuario puede representar a un cliente.
-Un comercio representa el lugar desde donde sale el pedido.
-Un pedido representa una solicitud de envío asociada a un usuario y a un comercio.
-
-### Flujo principal
-
-El flujo básico de la API es:
-
-1. Crear un usuario.
-2. Crear un comercio.
-3. Crear un pedido usando el ID del usuario y el ID del comercio.
-4. Consultar los pedidos.
-5. Actualizar el estado de un pedido.
-
-El pedido contiene una lista de items, una dirección de entrega, un total calculado y un estado.
-
-### Entidades principales
-
-### User
-
-Representa a un usuario dentro del sistema.
-
-Campos principales:
-
-```json
-{
-  "firstName": "Martina",
-  "lastName": "Gómez",
-  "email": "martina@test.com",
-  "password": "123456",
-  "role": "customer"
-}
-```
-
-Roles disponibles:
-
-```txt
-admin
-customer
-store
-```
-
-En esta versión base, el usuario se usa principalmente como cliente del pedido.
-
----
-
-### Store
-
-Representa un comercio.
-
-Campos principales:
-
-```json
-{
-  "name": "Kiosco Centro",
-  "address": "Av. Siempre Viva 742",
-  "owner": "ID_DEL_USUARIO"
-}
-```
-
-El campo `owner` guarda el ID de un usuario asociado al comercio.
-
----
-
-### Order
-
-Representa un pedido o envío.
-
-Campos principales:
-
-```json
-{
-  "customer": "ID_DEL_USUARIO",
-  "store": "ID_DEL_COMERCIO",
-  "deliveryAddress": "Av. Siempre Viva 742",
-  "items": [
-    {
-      "name": "Caja mediana",
-      "quantity": 2,
-      "price": 1500
-    }
-  ]
-}
-```
-
-Cuando se crea un pedido, la API calcula el total automáticamente recorriendo los items.
-
-Ejemplo:
-
-```txt
-2 unidades x $1500 = $3000
-```
-
-El pedido se crea inicialmente con estado:
-
-```txt
-created
-```
-
-Estados posibles del pedido:
-
-```txt
-created
-assigned
-picked_up
-in_transit
-delivered
-cancelled
-```
-
-### Endpoints disponibles
-
-### Health check
-
-Permite verificar que la API está funcionando.
-
-```http
-GET /health
-```
-
-Respuesta esperada:
-
-```json
-{
-  "status": "success",
-  "message": "API funcionando correctamente"
-}
-```
-
----
-
-## Users
-
-### Obtener usuarios
-
-```http
-GET /api/users
-```
-
-### Obtener usuario por ID
-
-```http
-GET /api/users/:uid
-```
-
-### Crear usuario
-
-```http
-POST /api/users
-```
-
-Body de ejemplo:
-
-```json
-{
-  "firstName": "Martina",
-  "lastName": "Gómez",
-  "email": "martina@test.com",
-  "password": "123456",
-  "role": "customer"
-}
 ```
-
-### Actualizar usuario
-
-```http
-PUT /api/users/:uid
-```
-
-### Eliminar usuario
-
-```http
-DELETE /api/users/:uid
-```
-
----
-
-## Stores
-
-### Obtener comercios
-
-```http
-GET /api/stores
-```
-
-### Obtener comercio por ID
-
-```http
-GET /api/stores/:sid
-```
-
-### Crear comercio
-
-```http
-POST /api/stores
-```
-
-Body de ejemplo:
-
-```json
-{
-  "name": "Kiosco Centro",
-  "address": "Av. Siempre Viva 742",
-  "owner": "ID_DEL_USUARIO"
-}
-```
-
-### Actualizar comercio
-
-```http
-PUT /api/stores/:sid
-```
-
-### Eliminar comercio
-
-```http
-DELETE /api/stores/:sid
+PORT=8080
+MONGO_URL=tu_url_de_mongodb
+JWT_SECRET=tu_secreto_para_jwt
+JWT_EXPIRES_IN=1d
 ```
 
----
+## Uso
 
-## Orders
+### Modo Desarrollo
 
-### Obtener pedidos
+Para iniciar el servidor en modo desarrollo con reinicio automático:
 
-```http
-GET /api/orders
+```bash
+npm run dev
 ```
 
-### Obtener pedido por ID
+El servidor se iniciará en el puerto configurado en `.env`.
 
-```http
-GET /api/orders/:oid
-```
-
-### Crear pedido
+## Estructura del Proyecto
 
-```http
-POST /api/orders
 ```
-
-Body de ejemplo:
-
-```json
-{
-  "customer": "ID_DEL_USUARIO",
-  "store": "ID_DEL_COMERCIO",
-  "deliveryAddress": "Av. Siempre Viva 742",
-  "items": [
-    {
-      "name": "Caja mediana",
-      "quantity": 2,
-      "price": 1500
-    },
-    {
-      "name": "Sobre chico",
-      "quantity": 1,
-      "price": 800
-    }
-  ]
-}
+.
+├── src/
+│   ├── config/         # Configuraciones (conexión a BD)
+│   ├── controllers/    # Lógica de negocio de las rutas
+│   ├── middlewares/    # Middlewares personalizados
+│   ├── models/         # Modelos de Mongoose
+│   ├── routes/         # Definición de rutas de la API
+│   └── utils/          # Utilidades y funciones auxiliares
+├── .env                # Variables de entorno (no versionado)
+├── .env.example        # Ejemplo de variables de entorno
+├── .gitignore          # Archivos ignorados por Git
+├── app.js              # Punto de entrada de la aplicación
+├── package.json        # Dependencias y scripts
+└── README.md           # Documentación del proyecto
 ```
 
-Respuesta esperada:
+## Documentación con Swagger
 
-```json
-{
-  "status": "success",
-  "payload": {
-    "_id": "ID_DEL_PEDIDO",
-    "customer": "ID_DEL_USUARIO",
-    "store": "ID_DEL_COMERCIO",
-    "items": [
-      {
-        "name": "Caja mediana",
-        "quantity": 2,
-        "price": 1500
-      },
-      {
-        "name": "Sobre chico",
-        "quantity": 1,
-        "price": 800
-      }
-    ],
-    "deliveryAddress": "Av. Siempre Viva 742",
-    "total": 3800,
-    "status": "created"
-  }
-}
-```
+El proyecto implementa documentación automática de la API utilizando **Swagger** (OpenAPI Specification). La documentación se genera mediante:
 
-### Actualizar estado del pedido
+- **swagger-jsdoc**: Permite generar la especificación Swagger a partir de comentarios JSDoc en el código
+- **swagger-ui-express**: Proporciona una interfaz de usuario interactiva para visualizar y probar la documentación
 
-```http
-PUT /api/orders/:oid/status
-```
+### Acceso a la Documentación
 
-Body de ejemplo:
+Una vez iniciado el servidor, puedes acceder a la documentación interactiva de la API en:
 
-```json
-{
-  "status": "in_transit"
-}
 ```
-
-### Eliminar pedido
-
-```http
-DELETE /api/orders/:oid
+http://localhost:8080/api-docs
 ```
-
----
-
-## Formato general de respuestas
 
-Las respuestas exitosas siguen una estructura simple:
+Esta interfaz te permite:
+- Visualizar todos los endpoints disponibles en la API
+- Ver los parámetros requeridos y opcionales para cada endpoint
+- Probar los endpoints directamente desde el navegador con la interfaz de Swagger UI
+- Consultar los esquemas de los modelos de datos
+- Ver ejemplos de request/response para cada operación
 
-```json
-{
-  "status": "success",
-  "payload": {}
-}
-```
+### Implementación Técnica
 
-Las respuestas de error, en esta versión base, todavía se manejan de forma simple desde las rutas:
+La documentación se expone mediante el siguiente endpoint en `app.js`:
 
-```json
-{
-  "status": "error",
-  "message": "Usuario no encontrado"
-}
+```javascript
+app.use("/api/docs", swaggerUI.serve, swaggerUI.setup(swaggerSpec))
 ```
-
-Más adelante, el proyecto será refactorizado para incorporar una capa centralizada de manejo de errores.
-
-## Estado actual del proyecto
 
-Esta versión base de ShipNow funciona, pero todavía no representa una API completamente profesional.
+Este endpoint sirve la interfaz de Swagger UI que renderiza la especificación Swagger generada automáticamente desde los comentarios JSDoc en los controladores y rutas.
 
-Actualmente el proyecto tiene:
+## Endpoints Disponibles
 
-```txt
-app.js
-server.js
-models
-routes
-controllers
-services
-repositories
-config/db.js
-config/env.js
-```
+### Sesiones
 
-Todavía no incorpora:
+- `POST /api/sessions/register` - Registrar un nuevo usuario
+- `POST /api/sessions/login` - Iniciar sesión
+- `POST /api/sessions/logout` - Cerrar sesión
+- `GET /api/sessions/current` - Obtener el usuario actual
 
-```txt
-middleware global de errores
-logger profesional
-Swagger
-tests automatizados
-Multer
-Docker
-```
+## Características
 
-Durante el curso, la API será mejorada progresivamente para separar responsabilidades, mejorar la mantenibilidad y acercarse a una estructura más profesional.
+- **Documentación con Swagger**: Implementación de documentación automática de la API usando swagger-jsdoc y swagger-ui-express
+- **Autenticación con JWT**: Implementación de tokens JSON Web Token para autenticación
+- **Gestión de cookies**: Uso de cookies para almacenar el token de sesión
+- **Encriptación de contraseñas**: Uso de bcryptjs para hashear contraseñas de forma segura
+- **Arquitectura modular**: Separación de responsabilidades en controladores, modelos y rutas
 
-Clase 1:
-```txt 
--> Mejoramos la arquitectura añadiendo "controllers", "services" y "repositories" para separar responsabilidades.
+## Notas
 
--> Añadimos el archivo ./config/env.js para centralizar la configuración de variables de entorno.
-```
+- Las rutas para usuarios, eventos y tickets están comentadas en `app.js` y pueden ser activadas según se necesite
+- El proyecto utiliza módulos ES (`type: "module"` en package.json)
+- La conexión a MongoDB se establece automáticamente al iniciar el servidor
+- El token JWT se almacena en una cookie HTTP-only para mayor seguridad
