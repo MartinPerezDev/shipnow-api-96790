@@ -1,596 +1,287 @@
-# Módulo 2 - Mocking y Datos de Prueba
+# Clase 4 - Logging y Monitoreo
 
-## Objetivo del módulo
+## Objetivo de la clase
 
-En esta unidad incorporamos **Mocking** dentro del proyecto **ShipNow**.
+En esta unidad incorporamos **Logging** y **Monitoreo** dentro del proyecto **ShipNow**.
 
-El objetivo es generar información simulada pero consistente para poder probar el comportamiento de la API sin depender de datos cargados manualmente en MongoDB.
-
-Trabajar con datos mock nos permite:
-
-- Poblar rápidamente la base de datos.
-- Simular escenarios reales.
-- Validar endpoints existentes.
-- Facilitar tareas de testing.
-- Compartir un entorno de prueba similar entre todos los desarrolladores.
-- Evitar la carga manual de información repetitiva.
+El objetivo es implementar un sistema profesional de registro de logs y monitoreo para poder:
+- Rastrear errores y eventos en la aplicación
+- Facilitar el debugging en producción
+- Monitorear el estado y rendimiento de la API
+- Mantener registros históricos de operaciones
+- Detectar problemas proactivamente
 
 ---
 
-# ¿Qué es Mocking?
+# ¿Qué es Logging?
 
-Mocking consiste en generar datos falsos pero con una estructura compatible con los modelos reales del proyecto.
+Logging consiste en registrar eventos y mensajes de la aplicación durante su ejecución para poder rastrear su comportamiento, diagnosticar problemas y monitorear su estado.
 
 Por ejemplo:
 
-Un usuario mock:
-
-```json
-{
-  "firstName": "Martina",
-  "lastName": "Gómez",
-  "email": "martina@test.com",
-  "role": "customer"
-}
-```
-
-Un pedido mock:
-
-```json
-{
-  "customer": "687ab...",
-  "status": "created",
-  "priority": "high"
-}
-```
-
-Una tienda mock:
-
-```json
-{
-  "name": "Store Demo",
-  "owner": "687ac..."
-}
-```
-
-Estos datos son ficticios.
-
-No representan clientes reales.
-
-Su objetivo es permitir probar funcionalidades, endpoints y relaciones entre entidades durante el desarrollo.
-
----
-
-# Librerías incorporadas
-
-Instalamos FakerJS para generar información aleatoria.
-
-```bash
-npm install @faker-js/faker
-```
-
-Instalamos bcryptjs para generar contraseñas compatibles con el sistema de autenticación.
-
-```bash
-npm install bcryptjs
-```
-
----
-
-# Endpoints incorporados
-
-Durante este módulo agregamos un router específico para mocking.
-
-Base URL:
+Un log de error:
 
 ```text
-/api/mocks
+[2024-08-07 18:30:45] error: Error al conectar con MongoDB
 ```
 
-Endpoints disponibles:
+Un log de información:
 
-```http
-GET /api/mocks/mockingusers
+```text
+[2024-08-07 18:30:46] info: Servidor iniciado en puerto 8080
 ```
 
-Genera usuarios falsos.
+Un log de advertencia:
 
-No guarda información en MongoDB.
+```text
+[2024-08-07 18:30:47] warning: Tiempo de respuesta elevado en endpoint /api/orders
+```
+
+Estos registros permiten:
+
+- Identificar cuándo ocurrió un problema
+- Entender el contexto del error
+- Rastrear el flujo de ejecución
+- Analizar patrones de uso
+- Mejorar el rendimiento
 
 ---
 
-```http
-GET /api/mocks/mockingorders
+# Librería incorporada
+
+Instalamos Winston para implementar un sistema profesional de logging.
+
+```bash
+npm install winston
 ```
 
-Genera pedidos falsos.
-
-No guarda información en MongoDB.
+Winston es una librería de logging multi-transporte asíncrona para Node.js que permite:
+- Configurar múltiples niveles de log
+- Enviar logs a diferentes destinos (consola, archivos, servicios externos)
+- Formatear los logs según necesidades
+- Manejar errores de forma robusta
 
 ---
 
-```http
-POST /api/mocks/generateData
+# Configuración del Logger
+
+Durante esta clase agregamos un sistema de logging profesional.
+
+Archivo:
+
+```text
+src/config/logger.js
 ```
 
-Genera usuarios, tiendas y pedidos falsos e inserta la información en MongoDB.
+Configuración implementada:
+
+```js
+import winston from "winston"
+
+const customLevels = {
+  levels: {
+    fatal: 0,    // Máxima prioridad
+    error: 1,
+    warning: 2,
+    info: 3,
+    http: 4,
+    debug: 5     // Mínima prioridad
+  }
+}
+
+const logger = winston.createLogger({
+  levels: customLevels.levels,
+  level: process.env.NODE_ENV === "production" ? "http" : "debug",
+  format: winston.format.combine(
+    winston.format.timestamp(),
+    winston.format.simple()
+  ),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({filename: './logs/test_con_winston.log'})
+  ]
+})
+```
+
+---
+
+# Niveles de Log
+
+El sistema implementa niveles personalizados de logging:
+
+### fatal (0)
+Errores críticos que impiden el funcionamiento de la aplicación.
+
+### error (1)
+Errores que no detienen la aplicación pero requieren atención.
+
+### warning (2)
+Advertencias sobre situaciones potencialmente problemáticas.
+
+### info (3)
+Información general sobre el funcionamiento de la aplicación.
+
+### http (4)
+Logs relacionados con peticiones HTTP.
+
+### debug (5)
+Información detallada para debugging (solo en desarrollo).
+
+---
+
+# Transportes de Log
+
+El logger está configurado con dos transportes:
+
+### Console
+Envía los logs a la consola para visualización en tiempo real.
+
+### File
+Guarda los logs en un archivo para persistencia histórica.
+
+Archivo de log:
+
+```text
+./logs/test_con_winston.log
+```
+
+Esto permite:
+- Ver logs en tiempo real durante el desarrollo
+- Mantener un registro histórico para análisis posterior
+- Investigar problemas ocurridos en producción
+
+---
+
+# Configuración de Entorno
+
+El nivel de log se configura según el entorno:
+
+### Desarrollo (NODE_ENV !== production)
+Nivel: `debug`
+
+Muestra todos los logs incluyendo información detallada de debugging.
+
+### Producción (NODE_ENV === production)
+Nivel: `http`
+
+Muestra logs desde nivel http hacia arriba, excluyendo debug.
+
+Esto permite:
+- Tener información detallada durante el desarrollo
+- Reducir el volumen de logs en producción
+- Mantener solo información relevante en ambientes productivos
+
+---
+
+# Formato de Logs
+
+Los logs se formatean con timestamp para facilitar el rastreo temporal de eventos.
+
+Formato:
+
+```text
+[timestamp] [level]: message
+```
 
 Ejemplo:
 
-```json
-{
-  "users": 20,
-  "stores": 5,
-  "orders": 50
-}
-```
-
-Respuesta:
-
-```json
-{
-  "status": "success",
-  "payload": {
-    "users": 20,
-    "stores": 12,
-    "orders": 50
-  }
-}
-```
-
----
-
-# Integración en app.js
-
-Se agregó la siguiente configuración:
-
-```js
-if(process.env.NODE_ENV !== 'production'){
-   app.use('/api/mocks', mocksRouter)
-}
-```
-
-## ¿Qué función cumple?
-
-Evita exponer endpoints de prueba en producción.
-
-De esta forma, el router de mocking solamente estará disponible durante el desarrollo.
-
-Esto impide que un usuario externo pueda insertar información falsa dentro de la base de datos productiva.
-
----
-
-# Router de Mocking
-
-Archivo:
-
 ```text
-src/routes/mocks.router.js
+[2024-08-07 18:30:45] error: Error al conectar con MongoDB
+[2024-08-07 18:30:46] info: Servidor iniciado en puerto 8080
+[2024-08-07 18:30:47] debug: Procesando petición GET /api/users
 ```
 
-Se agregaron tres endpoints.
-
-### GET /mockingusers
-
-```js
-router.get('/mockingusers', async (req, res) => {
-
-   const users = await generateMockUser()
-
-   res.status(200).json({
-      status:'success',
-      payload:users
-   })
-
-})
-```
-
-Genera usuarios falsos utilizando FakerJS.
-
-No realiza inserciones en MongoDB.
-
-Simplemente devuelve información simulada.
+El timestamp permite:
+- Identificar el momento exacto de cada evento
+- Correlacionar logs con otros sistemas
+- Realizar análisis temporales de problemas
 
 ---
 
-### GET /mockingorders
+# Uso del Logger
+
+Para utilizar el logger en cualquier parte de la aplicación:
 
 ```js
-router.get('/mockingorders',(req,res)=>{
+import logger from './config/logger.js'
 
-   const orders = generateMockOrders(5)
+// Log de error
+logger.error('Error al conectar con MongoDB')
 
-   res.status(200).json({
-      status:'success',
-      payload:orders
-   })
+// Log de información
+logger.info('Servidor iniciado en puerto 8080')
 
-})
+// Log de advertencia
+logger.warning('Tiempo de respuesta elevado')
+
+// Log de debug
+logger.debug('Procesando petición GET /api/users')
+
+// Log fatal
+logger.fatal('Error crítico en el sistema')
+
+// Log HTTP
+logger.http('GET /api/users 200')
 ```
 
-Genera pedidos falsos.
-
-Los pedidos contienen:
-
-- Cliente
-- Tienda
-- Productos
-- Dirección
-- Total
-- Estado
-- Prioridad
-
-No modifica la base de datos.
-
----
-
-### POST /generateData
-
-```js
-router.post('/generateData', generateData)
-```
-
-Delega toda la lógica al controlador.
-
-El router únicamente recibe la petición y redirige la ejecución.
-
-La generación de datos y la persistencia quedan encapsuladas dentro del controller.
-
----
-
-# Carpeta mocks
-
-Se creó una carpeta dedicada a la generación de información simulada.
-
-```text
-src/mocks/
-```
-
-Estructura:
-
-```text
-users.mock.js
-stores.mock.js
-orders.mock.js
-```
-
-Esta separación permite mantener organizada la lógica de generación de datos.
-
----
-
-# users.mock.js
-
-Responsable de generar usuarios falsos.
-
-Se utiliza FakerJS para crear:
-
-- nombres
-- apellidos
-- correos electrónicos
-
-También se utiliza bcryptjs para generar una contraseña hasheada.
-
-```js
-const password = await bcrypt.hash("coder123",10)
-```
-
-De esta forma, los usuarios generados se comportan igual que los usuarios reales del sistema.
-
-Ejemplo generado:
-
-```json
-{
-  "firstName": "Lucas",
-  "lastName": "Fernandez",
-  "email": "lucas@test.com",
-  "password": "$2b$10$...",
-  "role": "customer"
-}
-```
-
-Los roles se seleccionan aleatoriamente utilizando:
-
-```js
-faker.helpers.arrayElement(availableRoles)
-```
-
-Roles posibles:
-
-```js
-CUSTOMER
-STORE
-```
-
-La función:
-
-```js
-generateMockUsers(quantity)
-```
-
-permite generar múltiples usuarios de manera automática.
-
----
-
-# stores.mock.js
-
-Responsable de generar tiendas falsas.
-
-Cada tienda se encuentra asociada a un propietario.
-
-```js
-return {
-
-   name: faker.company.name(),
-
-   address: faker.location.streetAddress(),
-
-   owner: ownerId,
-
-   isActive: faker.datatype.boolean()
-
-}
-```
-
-Cada Store creada queda vinculada con un usuario existente.
-
-Esto permite respetar las relaciones entre entidades.
-
----
-
-# orders.mock.js
-
-Responsable de generar pedidos falsos.
-
-Cada pedido contiene:
-
-- customer
-- store
-- items
-- deliveryAddress
-- total
-- status
-- priority
-
-Los productos se generan utilizando FakerJS.
-
-```js
-name: faker.commerce.productName()
-```
-
-La cantidad y precio son aleatorios.
-
-```js
-quantity: faker.number.int()
-
-price: faker.number.int()
-```
-
-El total se calcula automáticamente.
-
-```js
-const total = items.reduce(
-   (acc,item)=>acc + item.price * item.quantity,
-   0
-)
-```
-
-El estado del pedido se selecciona aleatoriamente utilizando las constantes del proyecto.
-
-```js
-faker.helpers.arrayElement(
-   Object.values(ORDER_STATUS)
-)
-```
-
-Estados posibles:
-
-```text
-created
-assigned
-picked_up
-in_transit
-delivered
-cancelled
-```
-
-La prioridad también se genera aleatoriamente.
-
-```js
-low
-normal
-high
-```
-
----
-
-# Controller de Mocking
-
-Archivo:
-
-```text
-src/controllers/mocks.controller.js
-```
-
-Este controlador contiene la lógica principal del endpoint:
-
-```http
-POST /api/mocks/generateData
-```
-
-Proceso completo:
-
-### 1. Leer cantidades recibidas
-
-```js
-const {
-   users = 10,
-   stores = 5,
-   orders = 20
-} = req.body
-```
-
----
-
-### 2. Generar usuarios
-
-```js
-const mockUsers =
-await generateMockUsers(users)
-```
-
----
-
-### 3. Insertar usuarios
-
-```js
-const createdUsers =
-await ordersRepository.insertManyUsers(
-   mockUsers
-)
-```
-
----
-
-### 4. Obtener propietarios
-
-```js
-const owners =
-createdUsers.filter(
-   user => user.role === USER_ROLES.STORE
-)
-```
-
----
-
-### 5. Obtener clientes
-
-```js
-const customers =
-createdUsers.filter(
-   user => user.role === USER_ROLES.CUSTOMER
-)
-```
-
----
-
-### 6. Generar tiendas
-
-```js
-const mockStores =
-generateMockStores(
-   owners
-)
-```
-
----
-
-### 7. Insertar tiendas
-
-```js
-const createdStores =
-await ordersRepository.insertManyStores(
-   mockStores
-)
-```
-
----
-
-### 8. Generar pedidos
-
-```js
-const mockOrders =
-generateMockOrders(
-   orders,
-   customers,
-   createdStores
-)
-```
-
----
-
-### 9. Insertar pedidos
-
-```js
-const createdOrders =
-await ordersRepository.insertManyOrders(
-   mockOrders
-)
-```
-
----
-
-### 10. Responder al cliente
-
-```js
-res.status(201).json({
-
-   status:'success',
-
-   payload:{
-
-      users:createdUsers.length,
-
-      stores:createdStores.length,
-
-      orders:createdOrders.length
-
-   }
-
-})
-```
+El logger puede ser importado y utilizado en:
+- Controladores
+- Servicios
+- Repositories
+- Middleware
+- Archivos de configuración
 
 ---
 
 # Arquitectura implementada
 
 ```text
-Routes
+Application
   ↓
 
-Controllers
+Logger (Winston)
   ↓
 
-Mocks
+Console Transport
   ↓
 
-Repositories
+File Transport
   ↓
 
-MongoDB
+./logs/test_con_winston.log
 ```
 
-Esta organización mantiene una arquitectura desacoplada, escalable y preparada para testing.
-
-El router no interactúa directamente con modelos de Mongoose.
-
-Toda la persistencia se realiza mediante repositories.
+Esta arquitectura permite:
+- Centralizar toda la lógica de logging
+- Configurar múltiples destinos de logs
+- Mantener consistencia en el formato de logs
+- Facilitar el debugging y monitoreo
+- Escalar a servicios externos de logging (Sentry, Loggly, etc.)
 
 ---
 
-# Resumen del módulo
+# Resumen de la clase
 
-Durante la clase 2 incorporamos un sistema completo de mocking para ShipNow.
+Durante la clase 4 incorporamos un sistema profesional de logging y monitoreo para ShipNow.
 
 Se implementó:
 
-✔ FakerJS
+✔ Winston como librería de logging
 
-✔ generación automática de usuarios
+✔ niveles personalizados de log (fatal, error, warning, info, http, debug)
 
-✔ generación automática de tiendas
+✔ configuración de transporte a consola
 
-✔ generación automática de pedidos
+✔ configuración de transporte a archivo
 
-✔ endpoints de visualización
+✔ formato de logs con timestamp
 
-✔ endpoint de carga masiva
+✔ configuración dinámica según entorno (desarrollo/producción)
 
-✔ persistencia mediante repositories
-
-✔ protección de endpoints en producción
+✔ carpeta dedicada para almacenar logs
 
 
-Este mecanismo permite acelerar el desarrollo, poblar rápidamente la base de datos y preparar el proyecto para futuras etapas de testing automatizado.  
+Este mecanismo permite monitorear la aplicación, rastrear errores, facilitar el debugging y mantener registros históricos de operaciones.  
 
 &nbsp;
 ##
@@ -971,7 +662,6 @@ Todavía no incorpora:
 
 ```txt
 middleware global de errores
-logger profesional
 Swagger
 tests automatizados
 Multer
@@ -985,4 +675,22 @@ Clase 1:
 -> Mejoramos la arquitectura añadiendo "controllers", "services" y "repositories" para separar responsabilidades.
 
 -> Añadimos el archivo ./config/env.js para centralizar la configuración de variables de entorno.
+```
+
+Clase 2:
+```txt
+-> Incorporamos sistema de Mocking con FakerJS para generar datos de prueba.
+
+-> Añadimos endpoints de mocking para poblar la base de datos rápidamente.
+```
+
+Clase 4:
+```txt
+-> Implementamos sistema profesional de Logging con Winston.
+
+-> Añadimos monitoreo de la aplicación para rastrear errores y eventos.
+
+-> Configuramos niveles de log (fatal, error, warning, info, http, debug).
+
+-> Implementamos transporte de logs a archivos y consola.
 ```
