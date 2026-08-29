@@ -2,9 +2,66 @@
 
 API REST para gestionar usuarios, tiendas y pedidos de una plataforma simple de logistica de envios.
 
-Esta version documenta las actualizaciones aplicadas en la clase 3: normalizacion de respuestas y manejo centralizado de errores.
+Este repositorio corresponde a la **Clase 8** cuyo tema principal es **Docker**. El proyecto incorpora contenerización para facilitar el despliegue y la ejecución de la API en entornos aislados.
 
-## Objetivo de la clase 3
+## Docker (Clase 8)
+
+En esta clase se incorporó **Docker** para contenerizar la aplicación. Docker permite empaquetar la API junto con todas sus dependencias en un contenedor ligero y portable, garantizando que la aplicación se ejecute de manera consistente en cualquier entorno.
+
+### Dockerfile
+
+Se creó el archivo `Dockerfile` en la raíz del proyecto para definir la construcción de la imagen:
+
+```dockerfile
+FROM node:22-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 8080
+CMD ["npm", "start"]
+```
+
+**Explicación de cada instrucción:**
+
+- **FROM node:22-alpine**: Usa como base la imagen oficial de Node.js versión 22 con Alpine Linux, una distribución ligera que reduce el tamaño final de la imagen.
+- **WORKDIR /app**: Establece el directorio de trabajo dentro del contenedor.
+- **COPY package*.json ./**: Copia los archivos package.json y package-lock.json al contenedor antes de instalar dependencias. Esto aprovecha el cache de capas de Docker.
+- **RUN npm install**: Instala las dependencias del proyecto.
+- **COPY . .**: Copia el resto del código fuente al contenedor.
+- **EXPOSE 8080**: Indica que el contenedor escuchará en el puerto 8080.
+- **CMD ["npm", "start"]**: Define el comando que se ejecutará al iniciar el contenedor.
+
+### Construcción de la imagen
+
+Para construir la imagen Docker de la API:
+
+```bash
+docker build -t shipnow-api .
+```
+
+### Ejecución del contenedor
+
+Para ejecutar el contenedor:
+
+```bash
+docker run -p 8080:8080 shipnow-api
+```
+
+Esto mapea el puerto 8080 del contenedor al puerto 8080 del host, permitiendo acceder a la API en `http://localhost:8080`.
+
+### Beneficios de la contenerización
+
+- **Portabilidad**: La aplicación se ejecuta igual en cualquier máquina que tenga Docker instalado.
+- **Aislamiento**: Las dependencias están encapsuladas en el contenedor, evitando conflictos con otras aplicaciones.
+- **Reproducibilidad**: Garantiza que el entorno de desarrollo sea idéntico al de producción.
+- **Escalabilidad**: Facilita el despliegue en orquestadores como Kubernetes o servicios en la nube.
+- **Ligereza**: Alpine Linux reduce significativamente el tamaño de la imagen comparado con distribuciones completas.
+
+## Base del proyecto
+
+Esta versión se basa en las actualizaciones aplicadas en la clase 3: normalizacion de respuestas y manejo centralizado de errores.
+
 
 Antes de esta actualizacion, cada controller armaba sus respuestas manualmente. Eso generaba repeticion y hacia que muchos errores esperados terminaran respondiendo como `500 Internal Server Error`.
 
@@ -232,7 +289,7 @@ Esto mantiene la configuracion centralizada en `src/config/env.js`.
 
 ## Resumen
 
-En esta clase se mejoro la estructura general de la API sin agregar librerias externas.
+En esta clase se mejororo la estructura general de la API sin agregar librerias externas (Clase 3) y se incorporó Docker para la contenerización de la aplicación (Clase 8).
 
 Se implemento:
 
@@ -245,5 +302,6 @@ Se implemento:
 - Refactor de controllers para usar `next(error)`.
 - Validacion de `items` en pedidos.
 - Uso de `envConfig.isProd` en `app.js`.
+- **Dockerfile para contenerización de la API.**
 
-La API queda mas consistente, mas facil de mantener y preparada para seguir creciendo con nuevas validaciones.
+La API queda mas consistente, mas facil de mantener, preparada para seguir creciendo con nuevas validaciones y lista para ser desplegada en entornos Dockerizados.
