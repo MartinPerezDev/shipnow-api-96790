@@ -8,6 +8,14 @@ const customLevels = {
     warn: 3,
     error: 4,
     fatal: 5
+  },
+  colors: {
+    debug: "blue",
+    http: "magenta",
+    info: "green",
+    warn: "yellow",
+    error: "red",
+    fatal: "red bgWhite"
   }
 };
 
